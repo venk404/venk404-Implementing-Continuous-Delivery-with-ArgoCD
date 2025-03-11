@@ -1,0 +1,35 @@
+name: Update Helm Chart CD
+on:
+  repository_dispatch:
+    types: [update-image]
+jobs:
+  update-helm-chart:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout Helm charts repository
+      uses: actions/checkout@v4
+      with:
+        repository: venk404/venk404-Helm-Assignments-k8s
+        token: ${{ secrets.PAT_TOKEN }}
+        path: helm-repo  # Checkout to a specific directory
+        
+    - name: Update Helm chart with latest image tag
+      run: |
+        # Install yq if not already available on the runner
+        if ! command -v yq &> /dev/null; then
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
+        fi
+        
+        # Update the image tag in the values file (with corrected path)
+        yq e '.application.image.tag = "${{ github.event.client_payload.image_tag }}"' -i helm-repo/helm/Restapi/values.yaml
+        
+    - name: Commit and push changes
+      run: |
+        cd helm-repo  # Change to the helm repository directory
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git add helm/Restapi/values.yaml
+        git commit -m "Update image tag to ${{ github.event.client_payload.image_tag }}"
+        git push

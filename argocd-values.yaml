@@ -1,0 +1,39 @@
+global:
+  nodeSelector:
+    type: dependent_services
+
+server:
+  nodeSelector:
+    type: dependent_services
+
+repoServer:
+  nodeSelector:
+    type: dependent_services
+
+dex:
+  nodeSelector:
+    type: dependent_services
+
+redis:
+  nodeSelector:
+    type: dependent_services
+
+controller:
+  nodeSelector:
+    type: dependent_services
+
+# Optional: Customize other settings as needed
+server:
+  extraArgs:
+    - --insecure
+  service:
+    type: NodePort
+
+# Recommended security settings
+configs:
+  secret:
+    createSecret: true
+  
+  # SSL configuration if needed
+  # tls:
+  #   enabled: true

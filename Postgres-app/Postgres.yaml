@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+    project: default
+    source:
+      repoURL: https://github.com/venk404/venk404-Helm-Assignments-k8s.git
+      targetRevision: main
+      path: helm/Postgressql
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: student-api
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+      syncOptions:
+        - CreateNamespace=true
