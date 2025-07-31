@@ -23,7 +23,14 @@ jobs:
         fi
         
         # Update the image tag in the values file (with corrected path)
-        yq e '.application.image.tag = "${{ github.event.client_payload.image_tag }}"' -i helm-repo/helm/Restapi/values.yaml
+        IMAGES=(${{ github.event.client_payload.images }})
+        for IMAGE in "${IMAGES[@]}"; do
+          if [[ $IMAGE == *"studentapi:"* ]]; then
+            yq e ".application.image.tag = \"${{ github.event.client_payload.restapi_version }}\"" -i helm-repo/helm/Restapi/values.yaml
+          elif [[ $IMAGE == *"db_migration:"* ]]; then
+            yq e ".migration.image.tag = \"${{ github.event.client_payload.migration_version }}\"" -i helm-repo/helm/Restapi/values.yaml
+          fi
+        done
         
     - name: Commit and push changes
       run: |
@@ -31,5 +38,15 @@ jobs:
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
         git add helm/Restapi/values.yaml
-        git commit -m "Update image tag to ${{ github.event.client_payload.image_tag }}"
+        COMMIT_MSG="Update Helm chart image tags:"
+        IMAGES=(${{ github.event.client_payload.images }})
+        for IMAGE in "${IMAGES[@]}"; do
+          if [[ $IMAGE == *"studentapi:"* ]]; then
+            COMMIT_MSG="$COMMIT_MSG studentapi to ${{ github.event.client_payload.restapi_version }}"
+          elif [[ $IMAGE == *"db_migration:"* ]]; then
+            COMMIT_MSG="$COMMIT_MSG db_migration to ${{ github.event.client_payload.migration_version }}"
+          fi
+        done
+        [ -z "${IMAGES[*]}" ] && COMMIT_MSG="Update Helm chart image tags: no images changed"
+        git commit -m "$COMMIT_MSG"
         git push
