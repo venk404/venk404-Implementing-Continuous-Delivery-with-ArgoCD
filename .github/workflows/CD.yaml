@@ -18,41 +18,70 @@ jobs:
       with:
         repository: venk404/venk404-Helm-Assignments-k8s
         token: ${{ secrets.PAT_TOKEN }}
-        path: helm-repo  # Checkout to a specific directory
+        path: helm-repo
         
-    - name: Update Helm chart with latest image tag
+    - name: Update Helm chart with latest image tags
       run: |
-        # Install yq if not already available on the runner
+        # Install yq if not already available
         if ! command -v yq &> /dev/null; then
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
         fi
         
-        # Update the image tag in the values file (with corrected path)
-        IMAGES=(${{ github.event.client_payload.images }})
-        for IMAGE in "${IMAGES[@]}"; do
-          if [[ $IMAGE == *"studentapi:"* ]]; then
-            yq e ".application.image.tag = \"${{ github.event.client_payload.restapi_version }}\"" -i helm-repo/helm/Restapi/values.yaml
-          elif [[ $IMAGE == *"db_migration:"* ]]; then
-            yq e ".migration.image.tag = \"${{ github.event.client_payload.migration_version }}\"" -i helm-repo/helm/Restapi/values.yaml
-          fi
-        done
+        echo "Current values.yaml before changes:"
+        cat helm-repo/helm/Restapi/values.yaml
+        echo "=================================="
+        
+        UPDATED_IMAGES=""
+        
+        # Check if restapi_version exists and update studentapi
+        if [ ! -z "${{ github.event.client_payload.restapi_version }}" ]; then
+          echo "Updating studentapi to version: ${{ github.event.client_payload.restapi_version }}"
+          yq e ".application.image.tag = \"${{ github.event.client_payload.restapi_version }}\"" -i helm-repo/helm/Restapi/values.yaml
+          UPDATED_IMAGES="$UPDATED_IMAGES studentapi:${{ github.event.client_payload.restapi_version }}"
+        fi
+        
+        # Check if migration_version exists and update db_migration
+        if [ ! -z "${{ github.event.client_payload.migration_version }}" ]; then
+          echo "Updating db_migration to version: ${{ github.event.client_payload.migration_version }}"
+          yq e ".application.migration.image.tag = \"${{ github.event.client_payload.migration_version }}\"" -i helm-repo/helm/Restapi/values.yaml
+          UPDATED_IMAGES="$UPDATED_IMAGES db_migration:${{ github.event.client_payload.migration_version }}"
+        fi
+        
+        echo "Updated images: $UPDATED_IMAGES"
+        echo "=================================="
+        echo "Updated values.yaml after changes:"
+        cat helm-repo/helm/Restapi/values.yaml
         
     - name: Commit and push changes
       run: |
-        cd helm-repo  # Change to the helm repository directory
+        cd helm-repo
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
+        
+        # Check if there are any changes
+        if git diff --quiet HEAD -- helm/Restapi/values.yaml; then
+          echo "No changes detected in values.yaml"
+          exit 0
+        fi
+        
         git add helm/Restapi/values.yaml
+        
+        # Build commit message based on what was updated
         COMMIT_MSG="Update Helm chart image tags:"
-        IMAGES=(${{ github.event.client_payload.images }})
-        for IMAGE in "${IMAGES[@]}"; do
-          if [[ $IMAGE == *"studentapi:"* ]]; then
-            COMMIT_MSG="$COMMIT_MSG studentapi to ${{ github.event.client_payload.restapi_version }}"
-          elif [[ $IMAGE == *"db_migration:"* ]]; then
+        
+        if [ ! -z "${{ github.event.client_payload.restapi_version }}" ]; then
+          COMMIT_MSG="$COMMIT_MSG studentapi to ${{ github.event.client_payload.restapi_version }}"
+        fi
+        
+        if [ ! -z "${{ github.event.client_payload.migration_version }}" ]; then
+          if [ ! -z "${{ github.event.client_payload.restapi_version }}" ]; then
+            COMMIT_MSG="$COMMIT_MSG, db_migration to ${{ github.event.client_payload.migration_version }}"
+          else
             COMMIT_MSG="$COMMIT_MSG db_migration to ${{ github.event.client_payload.migration_version }}"
           fi
-        done
-        [ -z "${IMAGES[*]}" ] && COMMIT_MSG="Update Helm chart image tags: no images changed"
+        fi
+        
+        echo "Committing with message: $COMMIT_MSG"
         git commit -m "$COMMIT_MSG"
         git push
