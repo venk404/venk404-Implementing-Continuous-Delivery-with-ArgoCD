@@ -7,6 +7,12 @@ jobs:
     runs-on: self-hosted
     
     steps:
+    - name: Debug - Print JSON payload
+      run: |
+        echo "=== WHAT THE WORKFLOW IS GETTING ==="
+        echo '${{ toJson(github.event.client_payload) }}'
+        echo "=================================="
+        
     - name: Checkout Helm charts repository
       uses: actions/checkout@v4
       with:
