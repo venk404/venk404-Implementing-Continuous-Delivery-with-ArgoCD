@@ -52,7 +52,7 @@ Now, you can log in to the ArgoCD UI at http://localhost:8080/applications using
 
 ### 4. Clone the Repository
 ```bash
-git clone https://github.com/venk404/SRE--RestAPI.git
+git clone https://github.com/venk404/venk404-Helm-Assignments-k8s.git
 cd "Assignment 9"
 ```
 
