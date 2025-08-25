@@ -13,7 +13,40 @@ We need to configure ArgoCD to do deployments on our behalf. The deployment shou
 
 ## Installation Guide
 
-### 1. Install and Set Up ArgoCD
+### 1. Clone the Repository
+```bash
+git clone https://github.com/venk404/venk404-Helm-Assignments-k8s.git
+cd "Assignment 9"
+```
+
+### 2. Automated Setup Script
+
+The `cluster_setup.sh` script automates the entire deployment process including:
+- Cluster creation
+- Vault installation and configuration
+- ArgoCD setup
+- Application deployments
+
+To use this script:
+
+2.1 First update the secrets in `vault_init.sh` with your desired values:
+   ```bash
+   # Example variables to update in vault_init.sh
+   POSTGRES_PASSWORD=""
+   POSTGRES_USER=""
+   POSTGRES_DB=""
+   ```
+
+2.2 Then run the setup script:
+   ```bash
+   ./cluster_setup.sh
+   ```
+
+This will create a fully configured environment with all components deployed automatically.
+
+If you want deploy everything manully you can go ahead with below steps.
+
+### 3. Install and Set Up ArgoCD
 ```bash
 # Create ArgoCD namespace
 kubectl create ns argocd
@@ -31,13 +64,13 @@ kubectl get pods -n argocd -owide
 
 To access the ArgoCD Dashboard, follow the steps below:
 
-### 2. Port Forward to Access the ArgoCD UI
+### 4. Port Forward to Access the ArgoCD UI
 Run the following command to forward the port:
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
-### 3. Retrieve the Initial Admin Password
+### 5. Retrieve the Initial Admin Password
 To get the initial admin password for ArgoCD, run this command:
 
 ```bash
@@ -50,20 +83,14 @@ Password: Use the initial password retrieved from the above command.
 Now, you can log in to the ArgoCD UI at http://localhost:8080/applications using the provided credentials.
 
 
-### 4. Clone the Repository
-```bash
-git clone https://github.com/venk404/venk404-Helm-Assignments-k8s.git
-cd "Assignment 9"
-```
-
 ## Vault Setup
 
-### 5. Deploy Vault Server Using ArgoCD
+### 6. Deploy Vault Server Using ArgoCD
 ```bash
 kubectl apply -f ./Vault-app/Vault_application.yaml
 ```
 
-### 6. Initialize and Unseal Vault
+### 7. Initialize and Unseal Vault
 ```bash
 # Wait for the Vault-0 pod to reach the ready state
 kubectl exec vault-0 -n vault -- vault operator init -key-shares=1 -key-threshold=1 -format=json > cluster-keys.json
@@ -75,7 +102,7 @@ export VAULT_UNSEAL_KEY=$(jq -r '.unseal_keys_b64[0]' cluster-keys.json)
 kubectl exec vault-0 -n vault -- vault operator unseal $VAULT_UNSEAL_KEY
 ```
 
-### 7. Configure Vault Secrets
+### 8. Configure Vault Secrets
 ```bash
 # Login to Vault (extract root token from cluster-keys.json)
 export VAULT_ROOT_TOKEN=$(jq -r '.root_token' cluster-keys.json)
@@ -88,7 +115,7 @@ vault kv put secrets/DBSECRETS POSTGRES_PASSWORD=yourpassword POSTGRES_DB=yourdb
 exit
 ```
 
-### 8. Update Values File for Vault Authentication
+### 9. Update Values File for Vault Authentication
 ```bash
 # Encode the Vault token
 echo -n $VAULT_ROOT_TOKEN | base64
@@ -101,23 +128,23 @@ vi values.yaml
 
 ## Deploy Applications with ArgoCD
 
-### 9. Create External Secrets Application
+### 10. Create External Secrets Application
 ```bash
 kubectl apply -f ./External-secrets-app/External-secret-crds.yaml
 kubectl apply -f ./External-secrets-app/External-secret-cr.yaml
 ```
 
-### 10. Deploy PostgreSQL Database
+### 11. Deploy PostgreSQL Database
 ```bash
 kubectl apply -f ./Postgres-app/Postgres.yaml
 ```
 
-### 11. Deploy REST API Application
+### 12. Deploy REST API Application
 ```bash
 kubectl apply -f ./Restapi-app/Restapi.yaml
 ```
 
-### 12. Access the API
+### 13. Access the API
 The REST API documentation is available at:
 ```
 http://127.0.0.1:30007/docs

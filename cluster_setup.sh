@@ -182,15 +182,15 @@ echo "⏳ Waiting for PostgreSQL pod to be 'Running' and Ready in 'student-api' 
 while true; do
   POD_JSON=$(kubectl get pods -n student-api -o json 2>/dev/null || true)
 
-  # Filter pods by name pattern (starts with "postgres-deployment")
+  # Filter pods by name pattern (starts with "postgres")
   FILTERED_PODS=$(echo "$POD_JSON" | jq '
-    { items: [.items[] | select(.metadata.name | test("^postgres-deployment"))] }
+    { items: [.items[] | select(.metadata.name | test("^postgres"))] }
   ')
 
   POD_COUNT=$(echo "$FILTERED_PODS" | jq '.items | length')
 
   if [[ "$POD_COUNT" -eq 0 ]]; then
-    echo "ℹ️ PostgreSQL pod not found yet in 'student-api'. Waiting..."
+    echo "ℹ️ PostgreSQL StatefulSet pod not found yet in 'student-api'. Waiting..."
     sleep 5
     continue
   fi
@@ -206,10 +206,10 @@ while true; do
   ')
 
   if [[ -z "$NOT_READY" ]]; then
-    echo "✅ PostgreSQL pod is Running and Ready in 'student-api'."
+    echo "✅ PostgreSQL StatefulSet pod is Running and Ready in 'student-api'."
     break
   else
-    echo "⏳ Waiting for PostgreSQL pod(s) to be ready:"
+    echo "⏳ Waiting for PostgreSQL StatefulSet pod(s) to be ready:"
     echo "$NOT_READY"
     sleep 5
   fi
